@@ -1,0 +1,285 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Rafeek Homes — Deployment Guide (Ubuntu 24.04 + Nginx)</title>
+<style>
+  @page { size: A4; margin: 20mm 16mm; }
+  * { box-sizing: border-box; }
+  html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body {
+    font-family: "Segoe UI", Arial, sans-serif;
+    color: #1A1A1A;
+    font-size: 12px;
+    line-height: 1.6;
+    margin: 0;
+  }
+  h1 { font-size: 30px; letter-spacing: -0.5px; margin: 0 0 6px; }
+  h2 { font-size: 19px; margin: 26px 0 8px; padding-bottom: 6px; border-bottom: 2px solid #C25E40; color: #1A1A1A; page-break-after: avoid; }
+  h3 { font-size: 14px; margin: 18px 0 6px; color: #C25E40; page-break-after: avoid; }
+  p { margin: 6px 0; }
+  code { background: #EFEBE3; padding: 1px 5px; border-radius: 3px; font-family: "Consolas", monospace; font-size: 11px; color: #7a2f18; }
+  pre {
+    background: #1A1A1A; color: #F9F8F6; padding: 12px 14px; border-radius: 6px;
+    font-family: "Consolas", monospace; font-size: 10.5px; line-height: 1.5;
+    white-space: pre-wrap; word-break: break-word; page-break-inside: avoid;
+    border-left: 4px solid #C25E40; margin: 8px 0;
+  }
+  pre code { background: none; color: inherit; padding: 0; }
+  .note { background: #EFEBE3; border-left: 4px solid #C25E40; padding: 10px 14px; border-radius: 4px; margin: 10px 0; page-break-inside: avoid; }
+  .warn { background: #fff3f0; border-left: 4px solid #d9534f; padding: 10px 14px; border-radius: 4px; margin: 10px 0; page-break-inside: avoid; }
+  ul, ol { margin: 6px 0 6px 18px; padding: 0; }
+  li { margin: 3px 0; }
+  .cover { text-align: left; padding: 40px 0 20px; border-bottom: 3px solid #1A1A1A; margin-bottom: 10px; }
+  .badge { display: inline-block; background: #C25E40; color: #fff; font-size: 11px; letter-spacing: 2px; text-transform: uppercase; padding: 4px 10px; border-radius: 3px; }
+  .muted { color: #4A4A4A; }
+  table { width: 100%; border-collapse: collapse; margin: 8px 0; font-size: 11px; page-break-inside: avoid; }
+  th, td { border: 1px solid #d8d1c4; padding: 6px 8px; text-align: left; vertical-align: top; }
+  th { background: #1A1A1A; color: #fff; }
+  .step { background:#C25E40; color:#fff; border-radius:50%; width:20px; height:20px; display:inline-block; text-align:center; line-height:20px; font-size:11px; margin-right:6px; }
+  a { color: #7a2f18; }
+</style>
+</head>
+<body>
+
+<div class="cover">
+  <span class="badge">Deployment Guide</span>
+  <h1>Rafeek Homes Website</h1>
+  <p class="muted" style="font-size:14px;margin-top:2px;">Step-by-step production installation on <strong>Ubuntu 24.04 LTS</strong> with <strong>Nginx</strong></p>
+  <p class="muted" style="font-size:11px;">Stack: React (CRA) frontend &middot; FastAPI (Python) backend &middot; MongoDB &middot; Nginx reverse proxy &middot; systemd &middot; HTTPS via Let's Encrypt</p>
+</div>
+
+<h2>Overview &amp; Architecture</h2>
+<p>This app has two parts served behind a single domain by Nginx:</p>
+<ul>
+  <li><strong>Frontend</strong> — a React app that is compiled to static files (<code>build/</code>). Nginx serves these directly.</li>
+  <li><strong>Backend</strong> — a FastAPI app run by <code>uvicorn</code> on <code>127.0.0.1:8001</code>. Every backend route starts with <code>/api</code>. Nginx forwards <code>/api</code> requests to it.</li>
+  <li><strong>Database</strong> — MongoDB running locally on <code>127.0.0.1:27017</code>.</li>
+</ul>
+<pre><code>Internet ──▶ Nginx (:80 / :443)
+                ├── /            ──▶ React static files  (/var/www/rafeek/build)
+                └── /api/...     ──▶ FastAPI (uvicorn @ 127.0.0.1:8001) ──▶ MongoDB (:27017)</code></pre>
+<div class="note"><strong>Before you start you need:</strong> a server running Ubuntu 24.04, a domain name (e.g. <code>rafeekhomes.com</code>) with its DNS <em>A record</em> pointed to your server's public IP, and SSH access with a <code>sudo</code> user.</div>
+
+<h2><span class="step">1</span>Prepare the server</h2>
+<p>Connect over SSH and update the system:</p>
+<pre><code>ssh youruser@YOUR_SERVER_IP
+
+sudo apt update &amp;&amp; sudo apt upgrade -y
+sudo apt install -y curl git build-essential ufw</code></pre>
+<p>Enable the firewall and allow SSH + web traffic:</p>
+<pre><code>sudo ufw allow OpenSSH
+sudo ufw allow 'Nginx Full'
+sudo ufw enable
+sudo ufw status</code></pre>
+
+<h2><span class="step">2</span>Install Node.js 20 &amp; Yarn (frontend tools)</h2>
+<pre><code># Node.js 20 LTS
+curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+sudo apt install -y nodejs
+
+# Yarn (this project uses Yarn, NOT npm)
+sudo corepack enable
+corepack prepare yarn@1.22.22 --activate
+
+node -v      # v20.x
+yarn -v      # 1.22.x</code></pre>
+
+<h2><span class="step">3</span>Install Python 3 (backend runtime)</h2>
+<pre><code>sudo apt install -y python3 python3-venv python3-pip
+python3 --version   # 3.12.x on Ubuntu 24.04</code></pre>
+
+<h2><span class="step">4</span>Install MongoDB Community 7.0</h2>
+<pre><code># Import the MongoDB public key
+curl -fsSL https://pgp.mongodb.com/server-7.0.asc | \
+  sudo gpg -o /usr/share/keyrings/mongodb-server-7.0.gpg --dearmor
+
+# Add the repo (Ubuntu 24.04 "noble")
+echo "deb [ arch=amd64,arm64 signed-by=/usr/share/keyrings/mongodb-server-7.0.gpg ] https://repo.mongodb.org/apt/ubuntu noble/mongodb-org/7.0 multiverse" | \
+  sudo tee /etc/apt/sources.list.d/mongodb-org-7.0.list
+
+sudo apt update
+sudo apt install -y mongodb-org
+
+# Start and enable on boot
+sudo systemctl start mongod
+sudo systemctl enable mongod
+sudo systemctl status mongod --no-pager</code></pre>
+<div class="note">MongoDB now listens on <code>127.0.0.1:27017</code> (localhost only) — perfect, the database should never be exposed to the internet.</div>
+
+<h2><span class="step">5</span>Get the application code onto the server</h2>
+<p>Create an app directory and copy your project into it. Use <strong>git</strong> if your code is in a repository, or <code>scp</code> to upload it.</p>
+<pre><code>sudo mkdir -p /var/www/rafeek
+sudo chown -R $USER:$USER /var/www/rafeek
+
+# Option A — clone from git
+git clone YOUR_REPO_URL /var/www/rafeek
+
+# Option B — upload from your local machine (run this on your laptop)
+# scp -r ./app/* youruser@YOUR_SERVER_IP:/var/www/rafeek/</code></pre>
+<p>After this you should have <code>/var/www/rafeek/backend</code> and <code>/var/www/rafeek/frontend</code>.</p>
+
+<h2><span class="step">6</span>Configure &amp; run the backend (FastAPI)</h2>
+<h3>6.1 — Create a virtual environment and install dependencies</h3>
+<pre><code>cd /var/www/rafeek/backend
+python3 -m venv venv
+source venv/bin/activate
+pip install --upgrade pip
+pip install -r requirements.txt</code></pre>
+
+<h3>6.2 — Create the backend environment file</h3>
+<p>Create <code>/var/www/rafeek/backend/.env</code> with the production values:</p>
+<pre><code>MONGO_URL="mongodb://localhost:27017"
+DB_NAME="rafeek_homes"
+CORS_ORIGINS="https://rafeekhomes.com,https://www.rafeekhomes.com"
+EMERGENT_EMAIL_KEY=your_email_key_here
+EMAIL_FROM_NAME=Rafeek Homes
+OWNER_EMAIL=sales@sparkcurv.com</code></pre>
+<div class="warn"><strong>Email note:</strong> the contact form uses the Emergent-managed email service via <code>EMERGENT_EMAIL_KEY</code>. This key is provisioned inside the Emergent platform. If you host the backend on your own server outside Emergent, contact form emails will only work if this key/endpoint is reachable; otherwise swap in your own SMTP/Resend provider. Inquiries are still saved to MongoDB regardless.</div>
+
+<h3>6.3 — Test it once by hand</h3>
+<pre><code>cd /var/www/rafeek/backend
+source venv/bin/activate
+uvicorn server:app --host 127.0.0.1 --port 8001
+# In another terminal:  curl http://127.0.0.1:8001/api/
+# Expected: {"message":"Rafeek Homes API"}
+# Press Ctrl+C to stop.</code></pre>
+
+<h3>6.4 — Run it permanently with systemd</h3>
+<p>Create the service file <code>/etc/systemd/system/rafeek-backend.service</code>:</p>
+<pre><code>[Unit]
+Description=Rafeek Homes FastAPI backend
+After=network.target mongod.service
+
+[Service]
+User=www-data
+Group=www-data
+WorkingDirectory=/var/www/rafeek/backend
+EnvironmentFile=/var/www/rafeek/backend/.env
+ExecStart=/var/www/rafeek/backend/venv/bin/uvicorn server:app --host 127.0.0.1 --port 8001 --workers 2
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target</code></pre>
+<p>Fix permissions, then start the service:</p>
+<pre><code>sudo chown -R www-data:www-data /var/www/rafeek/backend
+sudo systemctl daemon-reload
+sudo systemctl enable rafeek-backend
+sudo systemctl start rafeek-backend
+sudo systemctl status rafeek-backend --no-pager
+
+# View live logs anytime:
+sudo journalctl -u rafeek-backend -f</code></pre>
+
+<h2><span class="step">7</span>Build the frontend (React)</h2>
+<h3>7.1 — Point the frontend at your domain</h3>
+<p>Edit <code>/var/www/rafeek/frontend/.env</code> so the app calls your live domain:</p>
+<pre><code>REACT_APP_BACKEND_URL=https://rafeekhomes.com</code></pre>
+<div class="note">Do <strong>not</strong> add a trailing slash and do <strong>not</strong> add <code>/api</code> here — the code appends <code>/api</code> itself. Nginx will route <code>/api</code> to the backend.</div>
+
+<h3>7.2 — Install dependencies and compile</h3>
+<pre><code>cd /var/www/rafeek/frontend
+yarn install
+yarn build      # outputs static files into /var/www/rafeek/frontend/build</code></pre>
+<p>The <code>build/</code> folder now holds the production website Nginx will serve.</p>
+
+<h2><span class="step">8</span>Configure Nginx</h2>
+<pre><code>sudo apt install -y nginx</code></pre>
+<p>Create the site config <code>/etc/nginx/sites-available/rafeek</code>:</p>
+<pre><code>server {
+    listen 80;
+    server_name rafeekhomes.com www.rafeekhomes.com;
+
+    root /var/www/rafeek/frontend/build;
+    index index.html;
+
+    # Gzip for faster loads
+    gzip on;
+    gzip_types text/plain text/css application/javascript application/json image/svg+xml;
+
+    # API requests -> FastAPI backend
+    location /api/ {
+        proxy_pass http://127.0.0.1:8001;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 60s;
+    }
+
+    # Cache static assets aggressively
+    location /static/ {
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+    }
+
+    # React single-page-app routing: always fall back to index.html
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+}</code></pre>
+<p>Enable the site and reload:</p>
+<pre><code>sudo ln -s /etc/nginx/sites-available/rafeek /etc/nginx/sites-enabled/
+sudo rm -f /etc/nginx/sites-enabled/default
+sudo nginx -t          # test config — must say "syntax is ok"
+sudo systemctl restart nginx</code></pre>
+<p>Visit <code>http://rafeekhomes.com</code> — the site should load.</p>
+
+<h2><span class="step">9</span>Add free HTTPS (Let's Encrypt)</h2>
+<pre><code>sudo apt install -y certbot python3-certbot-nginx
+
+sudo certbot --nginx -d rafeekhomes.com -d www.rafeekhomes.com
+# Follow the prompts (enter email, agree, choose redirect HTTP -> HTTPS).</code></pre>
+<p>Certbot edits your Nginx config for SSL automatically and sets up auto-renewal. Test renewal:</p>
+<pre><code>sudo certbot renew --dry-run</code></pre>
+<div class="note">After HTTPS is live, make sure <code>REACT_APP_BACKEND_URL</code> uses <code>https://</code> (Step 7.1). If you changed it, rebuild the frontend with <code>yarn build</code>.</div>
+
+<h2><span class="step">10</span>Verify the deployment</h2>
+<pre><code># Backend health
+curl https://rafeekhomes.com/api/
+
+# Contact form endpoint (saves + emails a lead)
+curl -X POST https://rafeekhomes.com/api/contact \
+  -H "Content-Type: application/json" \
+  -d '{"name":"Test","email":"test@example.com","phone":"9994556889","interest":"Buy a Home","message":"Hello"}'
+
+# List saved inquiries
+curl https://rafeekhomes.com/api/inquiries</code></pre>
+<p>Open the site in a browser, scroll through all sections, play a YouTube video, and submit the contact form — you should get a success toast.</p>
+
+<h2>Updating the site later</h2>
+<table>
+  <tr><th>What changed</th><th>Commands to run</th></tr>
+  <tr><td>Frontend code</td><td><code>cd /var/www/rafeek/frontend &amp;&amp; git pull &amp;&amp; yarn install &amp;&amp; yarn build</code></td></tr>
+  <tr><td>Backend code / requirements</td><td><code>cd /var/www/rafeek/backend &amp;&amp; git pull &amp;&amp; source venv/bin/activate &amp;&amp; pip install -r requirements.txt &amp;&amp; sudo systemctl restart rafeek-backend</code></td></tr>
+  <tr><td>Any <code>.env</code> value</td><td>Edit the file, then <code>sudo systemctl restart rafeek-backend</code> (backend) or <code>yarn build</code> (frontend)</td></tr>
+</table>
+
+<h2>Troubleshooting</h2>
+<table>
+  <tr><th>Symptom</th><th>Check / Fix</th></tr>
+  <tr><td>502 Bad Gateway on <code>/api</code></td><td>Backend is down. <code>sudo systemctl status rafeek-backend</code> and <code>sudo journalctl -u rafeek-backend -n 100</code>.</td></tr>
+  <tr><td>Site loads but API calls fail (CORS)</td><td>Make sure your domain is listed in <code>CORS_ORIGINS</code> in the backend <code>.env</code>, then restart the backend.</td></tr>
+  <tr><td>Blank page / 404 on refresh of a route</td><td>The <code>try_files ... /index.html</code> line in Nginx must be present (Step 8).</td></tr>
+  <tr><td>Contact emails not arriving</td><td>Inquiries still save to Mongo. Verify <code>EMERGENT_EMAIL_KEY</code> / email provider is reachable, or switch to your own SMTP/Resend.</td></tr>
+  <tr><td>Mongo connection error</td><td><code>sudo systemctl status mongod</code>; ensure <code>MONGO_URL=mongodb://localhost:27017</code>.</td></tr>
+  <tr><td>Nginx won't start</td><td><code>sudo nginx -t</code> to see the config error line.</td></tr>
+</table>
+
+<h2>Security checklist (recommended)</h2>
+<ul>
+  <li>Keep the firewall on (Step 1) — only SSH + Nginx should be open.</li>
+  <li>Never expose MongoDB to the internet; keep it bound to <code>127.0.0.1</code>.</li>
+  <li>Store real secrets only in the server <code>.env</code> files (never commit them to git).</li>
+  <li>Run <code>sudo apt update &amp;&amp; sudo apt upgrade</code> regularly.</li>
+  <li>Consider adding automated MongoDB backups (<code>mongodump</code> via cron).</li>
+</ul>
+
+<p class="muted" style="margin-top:24px;border-top:1px solid #d8d1c4;padding-top:10px;font-size:10.5px;">
+Rafeek Homes &middot; Rafeek Construction, Muthu Nagar, Sivaganga - 630561 &middot; +91 99945 56889 &middot; Deployment guide for Ubuntu 24.04 LTS + Nginx.
+</p>
+
+</body>
+</html>
