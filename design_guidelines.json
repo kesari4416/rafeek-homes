@@ -1,0 +1,98 @@
+{
+  "theme": "Earthy Brutalism (Warm architecture meets Swiss layout precision)",
+  "mode": "light",
+  "brand_context": "Rafeek Homes - Construction & Real Estate in Sivagangai, TN. Premium, warm, trustworthy.",
+  "typography": {
+    "heading_font": "Cabinet Grotesk or Clash Display (Banned: Inter, Roboto).",
+    "body_font": "Inter (clean, highly readable).",
+    "hierarchy": {
+      "h1": "text-5xl md:text-7xl font-black tracking-tighter uppercase leading-none",
+      "h2": "text-3xl md:text-5xl font-bold tracking-tight",
+      "h3": "text-xl md:text-2xl font-bold tracking-tight",
+      "body": "text-base leading-relaxed",
+      "overline": "text-xs font-semibold tracking-[0.2em] uppercase text-brand_primary"
+    }
+  },
+  "colors": {
+    "background_primary": "#F9F8F6",
+    "background_secondary": "#EFEBE3",
+    "text_primary": "#1A1A1A",
+    "text_secondary": "#4A4A4A",
+    "brand_primary": "#C25E40",
+    "border_color": "rgba(26,26,26,0.1)",
+    "rules": "No pure white backgrounds for main sections; always tinted bone/sand. No generic gradients."
+  },
+  "layouts": {
+    "strategy": "The Swiss Grid / Architectural Grid. Exposed 1px border lines dividing sections to feel like blueprints.",
+    "spacing": "Generous spacing. py-24 to py-32 for sections.",
+    "bento_grid": "Mode A (Tetris Grid) for Projects. Asymmetrical, never perfectly filling a standard row.",
+    "containers": "Avoid standard centered wrappers. Use full-width grids with internal padding."
+  },
+  "visual_enhancers": {
+    "borders": "Expose the grid layout with border-black/10 on section boundaries.",
+    "shadows": "Minimal. Rely on 1px borders and high contrast instead of soft drop shadows.",
+    "overlays": "Hero text requires strong contrast; if over image, use bg-black/40."
+  },
+  "motion": {
+    "smooth_scroll": "Lenis is mandatory for the entire site.",
+    "hero_reveal": "Framer Motion line-by-line masked text reveal. overflow:hidden parent, y:100% to 0 child. Staggered.",
+    "parallax": "Use Framer Motion useScroll for slow image y-axis translation inside bounded containers.",
+    "marquee": "react-fast-marquee with 'PREMIUM VILLAS • SIVAGANGAI • RAFEEK HOMES •' - slow, architectural typography."
+  },
+  "component_instructions": {
+    "general": "Do not use Shadcn default cards for marketing layouts. Build raw semantic HTML with Tailwind.",
+    "forms": "Use Shadcn Input, Textarea, Button for the Contact Lead form. Customize to remove rounded corners.",
+    "buttons": "Sharp edges, hover animations (bg-text_primary text-white), strict rectangle.",
+    "stats": "Large typographic numbers using Framer Motion count-up effect if possible.",
+    "youtube_videos": "Embed real YouTube iframes within custom aspect-video clipped frames."
+  },
+  "image_urls": {
+    "hero_family": "https://images.unsplash.com/photo-1730130596425-197566414dc4?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NTYxOTF8MHwxfHNlYXJjaHwxfHxoYXBweSUyMGluZGlhbiUyMGZhbWlseSUyMGhvbWV8ZW58MHx8fHwxNzg2MjEwNTY5fDA&ixlib=rb-4.1.0&q=85",
+    "projects_exterior": [
+      "https://images.unsplash.com/photo-1706855203772-c249b75fe016?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NTYxOTF8MHwxfHNlYXJjaHwxfHxsdXh1cnklMjB2aWxsYSUyMGV4dGVyaW9yJTIwYXJjaGl0ZWN0dXJlfGVufDB8fHx8MTc4NjIxMDU1M3ww&ixlib=rb-4.1.0&q=85",
+      "https://images.unsplash.com/photo-1660361338517-8c8fbb3ac264?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NTYxOTF8MHwxfHNlYXJjaHw0fHxsdXh1cnklMjB2aWxsYSUyMGV4dGVyaW9yJTIwYXJjaGl0ZWN0dXJlfGVufDB8fHx8MTc4NjIxMDU1M3ww&ixlib=rb-4.1.0&q=85",
+      "https://images.unsplash.com/photo-1721815693498-cc28507c0ba2?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NTYxOTF8MHwxfHNlYXJjaHwzfHxsdXh1cnklMjB2aWxsYSUyMGV4dGVyaW9yJTIwYXJjaGl0ZWN0dXJlfGVufDB8fHx8MTc4NjIxMDU1M3ww&ixlib=rb-4.1.0&q=85"
+    ],
+    "services_interior": [
+      "https://images.unsplash.com/photo-1724582586529-62622e50c0b3?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2NzB8MHwxfHNlYXJjaHwyfHxtb2Rlcm4lMjBpbnRlcmlvciUyMGRlc2lnbiUyMGxpdmluZyUyMHJvb218ZW58MHx8fHwxNzg2MjEwNTUzfDA&ixlib=rb-4.1.0&q=85",
+      "https://images.unsplash.com/photo-1564078516393-cf04bd966897?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2NzB8MHwxfHNlYXJjaHwxfHxtb2Rlcm4lMjBpbnRlcmlvciUyMGRlc2lnbiUyMGxpdmluZyUyMHJvb218ZW58MHx8fHwxNzg2MjEwNTUzfDA&ixlib=rb-4.1.0&q=85"
+    ],
+    "services_construction": [
+      "https://images.pexels.com/photos/1078879/pexels-photo-1078879.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+      "https://images.pexels.com/photos/8961260/pexels-photo-8961260.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940"
+    ],
+    "brand_youtube_logo": "https://images.unsplash.com/photo-1611162616475-46b635cb6868?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1NTZ8MHwxfHNlYXJjaHwxfHx5b3V0dWJlJTIwbG9nb3xlbnwwfHx8fDE3ODYyMTA1Njl8MA&ixlib=rb-4.1.0&q=85"
+  },
+  "libraries_and_3d": {
+    "scroll": "@studio-freight/lenis",
+    "animation": "framer-motion",
+    "marquee": "react-fast-marquee",
+    "icons": "lucide-react"
+  },
+  "accessibility": {
+    "focus": "Focus states must have high contrast (focus:ring-2 focus:ring-primary).",
+    "contrast": "Text over images MUST have text-shadow or a dark gradient overlay.",
+    "data_testid": "MANDATORY: all interactive elements must have semantic kebab-case data-testid."
+  },
+  "instructions_to_main_agent": [
+    "INSTALL LIBRARIES: yarn add framer-motion @studio-freight/lenis react-fast-marquee lucide-react",
+    "FILES: Work entirely in .jsx/.js files, NO TypeScript.",
+    "HERO SECTION: Implement a massive height hero. Use Framer Motion to mask-reveal the H1 line-by-line on load.",
+    "MANIFESTO/ABOUT: Create a numbered list (01, 02, 03) outlining core values.",
+    "SERVICES: Grid layout showcasing Construction, Homes for Sale, Villas, Interior Design.",
+    "PROJECTS: Clipped image frames, asymmetrical bento grid. Hover effects on images.",
+    "YOUTUBE SECTION: Section for embedded YouTube videos linking to 'rafeek homes'. Use youtube logo provided.",
+    "STATS: Large typography for homes built, sq.ft, happy families.",
+    "MARQUEE: Insert an editorial marquee using react-fast-marquee between major sections.",
+    "CONTACT: Implement a working form mimicking lead generation. Include the address (Muthu Nagar, Sivaganga - 630561) and Phone (9994556889).",
+    "TESTIMONIALS & CAREERS: Clean, typography-driven, no generic cards."
+  ],
+  "universal_guidelines_for_main_agent": [
+    "Do not use generic centered text alignments. Use optical left alignment.",
+    "Do not add universal transition (e.g., transition: all). Target transitions specifically.",
+    "No emojis for UI icons, use lucide-react exclusively.",
+    "Generous spacing: use py-24, py-32 to create breathing room.",
+    "Never use fully transparent backgrounds on headers; always apply a solid color or backdrop-blur.",
+    "Add 'data-testid' to all buttons, links, and forms."
+  ]
+}
