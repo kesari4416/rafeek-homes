@@ -4,6 +4,11 @@ from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 import os
 import logging
+import ssl
+import smtplib
+import asyncio
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 import httpx
 from pathlib import Path
 from pydantic import BaseModel, Field, ConfigDict, EmailStr
@@ -25,6 +30,12 @@ EMAIL_BASE_URL = "https://integrations.emergentagent.com"
 EMAIL_KEY = os.environ["EMERGENT_EMAIL_KEY"]
 EMAIL_FROM_NAME = os.environ["EMAIL_FROM_NAME"]
 OWNER_EMAIL = os.environ["OWNER_EMAIL"]
+
+# SMTP (optional — used first if configured, e.g. Google Workspace / Gmail)
+SMTP_HOST = os.environ.get("SMTP_HOST")
+SMTP_PORT = int(os.environ.get("SMTP_PORT", "587"))
+SMTP_EMAIL = os.environ.get("SMTP_EMAIL")
+SMTP_PASSWORD = os.environ.get("SMTP_PASSWORD")
 
 app = FastAPI()
 api_router = APIRouter(prefix="/api")
@@ -98,7 +109,29 @@ def build_lead_email(inq: Inquiry) -> str:
     """
 
 
-async def send_email(recipient: str, subject: str, html: str, reply_to: Optional[str] = None):
+def _smtp_send_sync(recipient: str, subject: str, html: str, reply_to: str | None = None):
+    msg = MIMEMultipart("alternative")
+    msg["Subject"] = subject
+    msg["From"] = f"{EMAIL_FROM_NAME} <{SMTP_EMAIL}>"
+    msg["To"] = recipient
+    if reply_to:
+        msg["Reply-To"] = reply_to
+    msg.attach(MIMEText(html, "html"))
+
+    context = ssl.create_default_context()
+    if SMTP_PORT == 465:
+        with smtplib.SMTP_SSL(SMTP_HOST, SMTP_PORT, context=context, timeout=30) as server:
+            server.login(SMTP_EMAIL, SMTP_PASSWORD)
+            server.send_message(msg)
+    else:
+        with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=30) as server:
+            server.ehlo()
+            server.starttls(context=context)
+            server.login(SMTP_EMAIL, SMTP_PASSWORD)
+            server.send_message(msg)
+
+
+async def send_via_emergent(recipient: str, subject: str, html: str, reply_to: Optional[str] = None):
     payload = {"to": [recipient], "subject": subject, "html": html, "from_name": EMAIL_FROM_NAME}
     if reply_to:
         payload["contact_email"] = reply_to
@@ -110,6 +143,17 @@ async def send_email(recipient: str, subject: str, html: str, reply_to: Optional
         )
     resp.raise_for_status()
     return resp.json().get("id")
+
+
+async def send_email(recipient: str, subject: str, html: str, reply_to: Optional[str] = None):
+    """Send via SMTP if configured, otherwise fall back to the Emergent email service."""
+    if SMTP_HOST and SMTP_EMAIL and SMTP_PASSWORD:
+        try:
+            await asyncio.to_thread(_smtp_send_sync, recipient, subject, html, reply_to)
+            return "smtp"
+        except Exception as e:
+            logger.error(f"SMTP send failed, falling back to Emergent: {e}")
+    return await send_via_emergent(recipient, subject, html, reply_to)
 
 
 # ---------- Routes ----------
