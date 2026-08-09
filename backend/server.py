@@ -25,11 +25,11 @@ mongo_url = os.environ['MONGO_URL']
 client = AsyncIOMotorClient(mongo_url)
 db = client[os.environ['DB_NAME']]
 
-# Email (Emergent managed Resend proxy)
+# Email (Emergent managed Resend proxy — optional fallback)
 EMAIL_BASE_URL = "https://integrations.emergentagent.com"
-EMAIL_KEY = os.environ["EMERGENT_EMAIL_KEY"]
-EMAIL_FROM_NAME = os.environ["EMAIL_FROM_NAME"]
-OWNER_EMAIL = os.environ["OWNER_EMAIL"]
+EMAIL_KEY = os.environ.get("EMERGENT_EMAIL_KEY")
+EMAIL_FROM_NAME = os.environ.get("EMAIL_FROM_NAME", "Rafeek Homes")
+OWNER_EMAIL = os.environ.get("OWNER_EMAIL") or os.environ.get("SMTP_EMAIL", "")
 
 # SMTP (optional — used first if configured, e.g. Google Workspace / Gmail)
 SMTP_HOST = os.environ.get("SMTP_HOST")
@@ -132,6 +132,8 @@ def _smtp_send_sync(recipient: str, subject: str, html: str, reply_to: str | Non
 
 
 async def send_via_emergent(recipient: str, subject: str, html: str, reply_to: Optional[str] = None):
+    if not EMAIL_KEY:
+        raise RuntimeError("No email transport configured (SMTP failed and EMERGENT_EMAIL_KEY is not set).")
     payload = {"to": [recipient], "subject": subject, "html": html, "from_name": EMAIL_FROM_NAME}
     if reply_to:
         payload["contact_email"] = reply_to
