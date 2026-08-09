@@ -132,10 +132,19 @@ pip install -r requirements.txt</code></pre>
 <pre><code>MONGO_URL="mongodb://localhost:27017"
 DB_NAME="rafeek_homes"
 CORS_ORIGINS="https://rafeekhomes.com,https://www.rafeekhomes.com"
-EMERGENT_EMAIL_KEY=your_email_key_here
+
+# --- Email: send the contact-form leads from YOUR mailbox (recommended) ---
+# Google Workspace / Gmail example. SMTP_PASSWORD must be a 16-char Google App Password.
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_EMAIL=sales@sparkcurv.com
+SMTP_PASSWORD=your_16_char_google_app_password
+OWNER_EMAIL=sales@sparkcurv.com
 EMAIL_FROM_NAME=Rafeek Homes
-OWNER_EMAIL=sales@sparkcurv.com</code></pre>
-<div class="warn"><strong>Email note:</strong> the contact form uses the Emergent-managed email service via <code>EMERGENT_EMAIL_KEY</code>. This key is provisioned inside the Emergent platform. If you host the backend on your own server outside Emergent, contact form emails will only work if this key/endpoint is reachable; otherwise swap in your own SMTP/Resend provider. Inquiries are still saved to MongoDB regardless.</div>
+
+# --- Optional fallback only (leave blank/omit when self-hosting) ---
+# EMERGENT_EMAIL_KEY=</code></pre>
+<div class="note"><strong>Email is optional to boot.</strong> The backend starts fine even if no email is configured — inquiries are always saved to MongoDB. If <code>SMTP_*</code> is set, leads are emailed via your mailbox; <code>EMERGENT_EMAIL_KEY</code> is only a fallback used inside the Emergent platform and can be left out on your own server.</div>
 
 <h3>6.3 — Test it once by hand</h3>
 <pre><code>cd /var/www/rafeek/backend
